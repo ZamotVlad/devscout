@@ -1,0 +1,72 @@
+services:
+  # Наша база даних
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=devscout_db
+      - POSTGRES_USER=scout_admin
+      - POSTGRES_PASSWORD=scout_pass
+
+  # Брокер повідомлень для Celery
+  redis:
+    image: redis:7-alpine
+
+  # Наш Django додаток
+  web:
+    build: .
+    command: python app/manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=1
+      - TELEGRAM_BOT_TOKEN=8827003895:AAEN4I5EqDxou9-2zIRjjn9oIAJZ2sA-O_A
+      - TELEGRAM_CHAT_ID=1389736354
+    depends_on:
+      - db
+      - redis
+
+  # Наш Кухар (Celery Worker)
+  celery_worker:
+    build: .
+    working_dir: /code/app
+    command: celery -A scoutcore worker -l info
+    volumes:
+      - .:/code
+    environment:
+      - DEBUG=1
+      - TELEGRAM_BOT_TOKEN=8827003895:AAEN4I5EqDxou9-2zIRjjn9oIAJZ2sA-O_A
+      - TELEGRAM_CHAT_ID=1389736354
+    depends_on:
+      - db
+      - redis
+
+  # Наш Будильник (Celery Beat)
+  celery_beat:
+    build: .
+    command: celery -A scoutcore beat -l info
+    volumes:
+      - .:/code
+    environment:
+      - DEBUG=1
+    depends_on:
+      - db
+      - redis
+
+      # Наш Telegram Бот (працює завжди у фоні)
+  telegram_bot:
+    build: .
+    command: python app/manage.py run_bot
+    volumes:
+      - .:/code
+    environment:
+      - DEBUG=1
+      - TELEGRAM_BOT_TOKEN=8827003895:AAEN4I5EqDxou9-2zIRjjn9oIAJZ2sA-O_A
+      - TELEGRAM_CHAT_ID=1389736354
+    depends_on:
+      - db
+volumes:
+  postgres_data:

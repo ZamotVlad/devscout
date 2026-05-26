@@ -1,0 +1,92 @@
+{% extends 'scout/base.html' %}
+{% load scout_tags %}
+
+{% block content %}
+
+{% if user.is_staff %}
+<div class="alert alert-warning border-0 shadow-sm d-flex justify-content-between align-items-center mb-4">
+    <span class="fw-bold text-dark">⚙️ Панель керування парсерами (Celery):</span>
+    <div>
+        <a href="{% url 'scout:trigger_parser' 'dou' %}" class="btn btn-sm btn-danger me-2">🕷 Запустити DOU</a>
+        <a href="{% url 'scout:trigger_parser' 'djinni' %}" class="btn btn-sm btn-primary">🦄 Запустити Djinni</a>
+    </div>
+</div>
+{% endif %}
+
+<div class="row mb-4 align-items-center">
+    <div class="col-md-4">
+        <h2>Останні вакансії <span class="badge bg-secondary fs-6">{{ total_count }}</span></h2>
+    </div>
+    
+    <div class="col-md-5">
+        <form method="get" action="{% url 'scout:vacancy_list' %}" class="d-flex">
+            {% if current_source %}
+                <input type="hidden" name="source" value="{{ current_source }}">
+            {% endif %}
+            <input class="form-control me-2" type="search" name="q" placeholder="Пошук за ключовим словом..." value="{{ search_query|default:'' }}">
+            <button class="btn btn-dark" type="submit">🔍</button>
+        </form>
+    </div>
+
+    <div class="col-md-3 text-end">
+        <div class="btn-group" role="group">
+            <a href="{% url 'scout:vacancy_list' %}{% if search_query %}?q={{ search_query }}{% endif %}" class="btn btn-outline-primary {% if not current_source %}active{% endif %}">Всі</a>
+            <a href="{% url 'scout:vacancy_list' %}?source=DOU{% if search_query %}&q={{ search_query }}{% endif %}" class="btn btn-outline-primary {% if current_source == 'DOU' %}active{% endif %}">DOU</a>
+            <a href="{% url 'scout:vacancy_list' %}?source=DJINNI{% if search_query %}&q={{ search_query }}{% endif %}" class="btn btn-outline-primary {% if current_source == 'DJINNI' %}active{% endif %}">Djinni</a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    {% for vacancy in page_obj %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="card-title fw-bold">{{ vacancy.title }}</h5>
+                <h6 class="card-subtitle mb-3 text-muted">🏢 {{ vacancy.company }}</h6>
+                
+                {% if vacancy.source == 'DOU' %}
+                    <span class="badge bg-danger mb-3">DOU.ua</span>
+                {% else %}
+                    <span class="badge bg-primary mb-3">Djinni.co</span>
+                {% endif %}
+
+                <p class="card-text text-muted small">{{ vacancy.description|striptags|truncatewords:20|highlight_skills }}</p>
+            </div>
+            
+            <div class="card-footer bg-white border-top-0 pb-3">
+                <a href="{{ vacancy.url }}" target="_blank" class="btn btn-dark w-100">Перейти до вакансії ↗</a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center mt-5">
+        <h4 class="text-muted">📭 База вакансій порожня</h4>
+        <p class="text-muted">Запусти парсер через кнопки вище або Telegram-бота, щоб зібрати дані.</p>
+    </div>
+    {% endfor %}
+</div>
+
+{% if page_obj.has_other_pages %}
+<nav aria-label="Page navigation" class="mt-4 mb-5">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_source %}&source={{ current_source }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">Попередня</a>
+        </li>
+        {% endif %}
+
+        <li class="page-item active">
+            <span class="page-link border-0 bg-secondary">{{ page_obj.number }} з {{ page_obj.paginator.num_pages }}</span>
+        </li>
+
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_source %}&source={{ current_source }}{% endif %}{% if search_query %}&q={{ search_query }}{% endif %}">Наступна</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% endblock %}
