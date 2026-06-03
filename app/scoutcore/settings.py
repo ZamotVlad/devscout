@@ -34,9 +34,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    
     "scout",
-    
     "rest_framework",
 ]
 
@@ -76,7 +74,9 @@ WSGI_APPLICATION = "scoutcore.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
+        "ENGINE": env(
+            "DJANGO_DATABASE_ENGINE", default="django.db.backends.postgresql"
+        ),
         "NAME": env("POSTGRES_DB"),
         "USER": env("POSTGRES_USER"),
         "PASSWORD": env("POSTGRES_PASSWORD"),
